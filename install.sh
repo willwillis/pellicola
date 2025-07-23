@@ -40,7 +40,7 @@ sudo apt install -y apache2 php php-gd php-common git rsync
 sudo apt autoremove -y
 
 # Clone the Git repo
-cd
+cd || exit 1
 git clone https://github.com/dmpop/pellicola.git
 
 # Copy Pellicola to the document root
