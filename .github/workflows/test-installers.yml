@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        distro: [ubuntu-22.04, archlinux, alpine, fedora-38, opensuse-leap]
+        distro: [ubuntu:22.04, archlinux:latest, alpine:latest, fedora:latest, opensuse/leap:latest]
     
     steps:
     - name: Checkout code
@@ -59,23 +59,23 @@ jobs:
           ./distro-specific-install.sh
           echo 'Testing package installation...'
           case '${{ matrix.distro }}' in
-            'ubuntu-22.04')
+            'ubuntu:22.04')
               dpkg -l | grep -E '(apache2|php|git|rsync)' || echo 'Package check completed'
               systemctl status apache2 || echo 'Service check completed'
               ;;
-            'archlinux')
+            'archlinux:latest')
               pacman -Q | grep -E '(apache|php|git|rsync)' || echo 'Package check completed'
               systemctl status httpd || echo 'Service check completed'
               ;;
-            'alpine')
+            'alpine:latest')
               apk list --installed | grep -E '(apache2|php|git|rsync)' || echo 'Package check completed'
               rc-service apache2 status || echo 'Service check completed'
               ;;
-            'fedora-38')
+            'fedora:latest')
               dnf list installed | grep -E '(httpd|php|git|rsync)' || echo 'Package check completed'
               systemctl status httpd || echo 'Service check completed'
               ;;
-            'opensuse-leap')
+            'opensuse/leap:latest')
               zypper packages --installed | grep -E '(apache2|php|git|rsync)' || echo 'Package check completed'
               systemctl status apache2 || echo 'Service check completed'
               ;;
@@ -89,7 +89,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        distro: [ubuntu-22.04, archlinux, alpine, fedora-38, opensuse-leap, centos-9]
+        distro: [ubuntu:22.04, archlinux:latest, alpine:latest, fedora:latest, opensuse/leap:latest, centos:latest]
     
     steps:
     - name: Checkout code
