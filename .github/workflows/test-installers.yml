@@ -2,7 +2,7 @@ name: Test Install Scripts
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, feature/* ]
     paths: [ 'install.sh', 'distro-specific-install.sh', '.github/workflows/test-installers.yml' ]
   pull_request:
     branches: [ main ]
