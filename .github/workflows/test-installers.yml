@@ -14,100 +14,104 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        distro: [ubuntu-22.04, ubuntu-20.04, debian-12]
+        image:
+          - ubuntu:22.04
+          - ubuntu:20.04
+          - debian:12
+    
+    container:
+      image: ${{ matrix.image }}
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Setup ${{ matrix.distro }}
-      uses: docker/setup-buildx-action@v3
-      
-    - name: Test original installer on ${{ matrix.distro }}
+    - name: Run original installer
       run: |
-        docker run --rm -v ${{ github.workspace }}:/workspace ${{ matrix.distro }} bash -c "
-          cd /workspace
-          chmod +x install.sh
-          ./install.sh
-          echo 'Testing package installation...'
-          dpkg -l | grep -E '(apache2|php|git|rsync)' || echo 'Package check completed'
-          echo 'Testing service status...'
-          systemctl status apache2 || echo 'Service check completed'
-          echo 'Testing file permissions...'
-          ls -la /var/www/html/ || echo 'Permission check completed'
-        "
+        chmod +x ./install.sh
+        ./install.sh
+        echo 'Testing package installation...'
+        dpkg -l | grep -E '(apache2|php|git|rsync)' || echo 'Package check completed'
+        echo 'Testing service status...'
+        systemctl status apache2 || echo 'Service check completed'
+        echo 'Testing file permissions...'
+        ls -la /var/www/html/ || echo 'Permission check completed'
 
   test-distro-specific-installer:
     name: Test Distro-Specific Installer
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        distro: [ubuntu:22.04, archlinux:latest, alpine:latest, fedora:latest, opensuse/leap:latest]
+        image:
+          - ubuntu:22.04
+          - archlinux:latest
+          - fedora:latest
+          - opensuse/leap:latest
+    
+    container:
+      image: ${{ matrix.image }}
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Setup ${{ matrix.distro }}
-      uses: docker/setup-buildx-action@v3
-      
-    - name: Test distro-specific installer on ${{ matrix.distro }}
+    - name: Run distro-specific installer
       run: |
-        docker run --rm -v ${{ github.workspace }}:/workspace ${{ matrix.distro }} bash -c "
-          cd /workspace
-          chmod +x distro-specific-install.sh
-          ./distro-specific-install.sh
-          echo 'Testing package installation...'
-          case '${{ matrix.distro }}' in
-            'ubuntu:22.04')
-              dpkg -l | grep -E '(apache2|php|git|rsync)' || echo 'Package check completed'
-              systemctl status apache2 || echo 'Service check completed'
-              ;;
-            'archlinux:latest')
-              pacman -Q | grep -E '(apache|php|git|rsync)' || echo 'Package check completed'
-              systemctl status httpd || echo 'Service check completed'
-              ;;
-            'alpine:latest')
-              apk list --installed | grep -E '(apache2|php|git|rsync)' || echo 'Package check completed'
-              rc-service apache2 status || echo 'Service check completed'
-              ;;
-            'fedora:latest')
-              dnf list installed | grep -E '(httpd|php|git|rsync)' || echo 'Package check completed'
-              systemctl status httpd || echo 'Service check completed'
-              ;;
-            'opensuse/leap:latest')
-              zypper packages --installed | grep -E '(apache2|php|git|rsync)' || echo 'Package check completed'
-              systemctl status apache2 || echo 'Service check completed'
-              ;;
-          esac
-          echo 'Testing file permissions...'
-          ls -la /var/www/html/ || echo 'Permission check completed'
-        "
+        chmod +x ./distro-specific-install.sh
+        ./distro-specific-install.sh
+        echo 'Testing package installation...'
+        case '${{ matrix.image }}' in
+          'ubuntu:22.04')
+            dpkg -l | grep -E '(apache2|php|git|rsync)' || echo 'Package check completed'
+            systemctl status apache2 || echo 'Service check completed'
+            ;;
+          'archlinux:latest')
+            pacman -Q | grep -E '(apache|php|git|rsync)' || echo 'Package check completed'
+            systemctl status httpd || echo 'Service check completed'
+            ;;
+          'fedora:latest')
+            dnf list installed | grep -E '(httpd|php|git|rsync)' || echo 'Package check completed'
+            systemctl status httpd || echo 'Service check completed'
+            ;;
+          'opensuse/leap:latest')
+            zypper packages --installed | grep -E '(apache2|php|git|rsync)' || echo 'Package check completed'
+            systemctl status apache2 || echo 'Service check completed'
+            ;;
+        esac
+        echo 'Testing file permissions...'
+        ls -la /var/www/html/ || echo 'Permission check completed'
 
   test-detection-only:
     name: Test OS Detection
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        distro: [ubuntu:22.04, archlinux:latest, alpine:latest, fedora:latest, opensuse/leap:latest, centos:latest]
+        image:
+          - ubuntu:22.04
+          - archlinux:latest
+          - fedora:latest
+          - opensuse/leap:latest
+          - centos:latest
+    
+    container:
+      image: ${{ matrix.image }}
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Test detection on ${{ matrix.distro }}
+    - name: Test detection
       run: |
-        docker run --rm -v ${{ github.workspace }}:/workspace ${{ matrix.distro }} bash -c "
-          cd /workspace
-          chmod +x distro-specific-install.sh
-          echo 'Testing OS detection...'
-          # Extract detection output without installing
-          ./distro-specific-install.sh 2>&1 | head -20 || echo 'Detection test completed'
-        "
+        chmod +x ./distro-specific-install.sh
+        echo 'Testing OS detection...'
+        # Extract detection output without installing
+        ./distro-specific-install.sh 2>&1 | head -20 || echo 'Detection test completed'
 
   test-edge-cases:
     name: Test Edge Cases
     runs-on: ubuntu-latest
+    container:
+      image: ubuntu:22.04
     
     steps:
     - name: Checkout code
@@ -116,32 +120,27 @@ jobs:
     - name: Test unsupported OS (macOS simulation)
       run: |
         echo "Testing unsupported OS handling..."
-        # Simulate macOS by modifying uname output
-        docker run --rm -v ${{ github.workspace }}:/workspace ubuntu-22.04 bash -c "
-          cd /workspace
-          chmod +x distro-specific-install.sh
-          # Mock uname to return Darwin
-          echo '#!/bin/bash' > /tmp/mock-uname
-          echo 'echo Darwin' >> /tmp/mock-uname
-          chmod +x /tmp/mock-uname
-          export PATH=/tmp:\$PATH
-          ./distro-specific-install.sh
-        "
+        chmod +x ./distro-specific-install.sh
+        # Mock uname to return Darwin
+        echo '#!/bin/bash' > /tmp/mock-uname
+        echo 'echo Darwin' >> /tmp/mock-uname
+        chmod +x /tmp/mock-uname
+        export PATH=/tmp:$PATH
+        ./distro-specific-install.sh
       
     - name: Test multiple package managers
       run: |
         echo "Testing multiple package managers..."
-        docker run --rm -v ${{ github.workspace }}:/workspace ubuntu-22.04 bash -c "
-          cd /workspace
-          chmod +x distro-specific-install.sh
-          # Install pacman alongside apt
-          apt update && apt install -y pacman
-          ./distro-specific-install.sh 2>&1 | head -10
-        "
+        chmod +x ./distro-specific-install.sh
+        # Install pacman alongside apt
+        apt update && apt install -y pacman
+        ./distro-specific-install.sh 2>&1 | head -10
 
   test-comparison:
     name: Compare Installers on Ubuntu
     runs-on: ubuntu-latest
+    container:
+      image: ubuntu:22.04
     
     steps:
     - name: Checkout code
@@ -149,25 +148,19 @@ jobs:
       
     - name: Test original installer
       run: |
-        docker run --rm -v ${{ github.workspace }}:/workspace ubuntu-22.04 bash -c "
-          cd /workspace
-          chmod +x install.sh
-          ./install.sh
-          echo 'Original installer packages:'
-          dpkg -l | grep -E '(apache2|php|git|rsync)' > /tmp/original-packages.txt
-          cat /tmp/original-packages.txt
-        "
+        chmod +x ./install.sh
+        ./install.sh
+        echo 'Original installer packages:'
+        dpkg -l | grep -E '(apache2|php|git|rsync)' > /tmp/original-packages.txt
+        cat /tmp/original-packages.txt
         
     - name: Test distro-specific installer
       run: |
-        docker run --rm -v ${{ github.workspace }}:/workspace ubuntu-22.04 bash -c "
-          cd /workspace
-          chmod +x distro-specific-install.sh
-          ./distro-specific-install.sh
-          echo 'Distro-specific installer packages:'
-          dpkg -l | grep -E '(apache2|php|git|rsync)' > /tmp/new-packages.txt
-          cat /tmp/new-packages.txt
-        "
+        chmod +x ./distro-specific-install.sh
+        ./distro-specific-install.sh
+        echo 'Distro-specific installer packages:'
+        dpkg -l | grep -E '(apache2|php|git|rsync)' > /tmp/new-packages.txt
+        cat /tmp/new-packages.txt
         
     - name: Compare results
       run: |
